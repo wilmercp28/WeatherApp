@@ -11,33 +11,33 @@ import java.util.Locale
 
 class ViewModel: ViewModel(){
     private var weather = "Cloudy"
-    val calendar = Calendar.getInstance()
+    private val calendar: Calendar = Calendar.getInstance()
     @Composable
-    fun WeatherIcon(): ImageBitmap {
+    fun weatherIcon(): ImageBitmap {
         val sun = ImageBitmap.imageResource(R.drawable.sun)
         val cloudy = ImageBitmap.imageResource(R.drawable.cloudy)
         val raining = ImageBitmap.imageResource(R.drawable.raining)
         val defaultWeather = ImageBitmap.imageResource(R.drawable.defaultweather)
-        when (weather) {
-            "Sunny" -> return sun
-            "Cloudy" -> return cloudy
-            "Raining" -> return raining
-            else -> return defaultWeather
+        return when (weather) {
+            "Sunny" -> sun
+            "Cloudy" -> cloudy
+            "Raining" -> raining
+            else -> defaultWeather
         }
 
     }
 
     @Composable
-    fun GetTime(): String {
+    fun getTime(): String {
         val timeFormat = SimpleDateFormat("hh:mm \na", Locale.getDefault())
 
         return timeFormat.format(calendar.time)
     }
-    fun GetMonth(): String {
+    fun getMonth(): String {
         val dateFormat = SimpleDateFormat("MM", Locale.getDefault())
         return dateFormat.format(calendar.time)
     }
-    fun GetDay(): String {
+    fun getDay(): String {
         val dateFormat = SimpleDateFormat("dd", Locale.getDefault())
         return dateFormat.format(calendar.time)
     }
