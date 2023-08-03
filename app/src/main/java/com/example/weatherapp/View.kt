@@ -55,8 +55,6 @@ class View : ComponentActivity() {
         }
     }
 }
-
-
 @Preview(showBackground = true)
 @Composable
 fun WeatherAppPreview() {
@@ -90,32 +88,40 @@ Box(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         // Time Text
-        Text(
-            text = SimpleDateFormat("HH:mm:ss").format(viewModel.currentTime),
-            fontSize = 40.sp,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onPrimary
-        //Time Text
-        )
-        Image(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = SimpleDateFormat("hh:mm").format(viewModel.currentTime),
+                fontSize = 40.sp,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+            Text(
+                text = SimpleDateFormat("a").format(viewModel.currentTime),
+                fontSize = 40.sp,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
 
+        Image(
             bitmap = viewModel.weatherIcon(), contentDescription = "",
             modifier = Modifier
                 .size(150.dp),
             contentScale = ContentScale.Fit
         )
         Column(
-            modifier = Modifier,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "",
+                text = SimpleDateFormat("dd").format(viewModel.currentTime),
                 fontSize = 60.sp,
                 color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "",
+                text = SimpleDateFormat("MM").format(viewModel.currentTime),
                 fontSize = 30.sp,
                 color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center
