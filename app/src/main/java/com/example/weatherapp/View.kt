@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import com.example.weatherapp.ui.theme.WeatherAppTheme
 
 class View : ComponentActivity() {
-    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -50,13 +49,12 @@ class View : ComponentActivity() {
 @Composable
 fun WeatherAppPreview() {
     WeatherAppTheme {
-
         WeatherAppUI()
     }
 }
-
 @Composable
 fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
