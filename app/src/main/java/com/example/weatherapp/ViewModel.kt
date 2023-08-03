@@ -1,18 +1,38 @@
 package com.example.weatherapp
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.imageResource
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
-
-
-class ViewModel: ViewModel(){
+open class ViewModel {
     private var weather = "Cloudy"
-    private val calendar: Calendar = Calendar.getInstance()
+    var currentTime by mutableStateOf(Calendar.getInstance().time)
+    init {
+        updateTimePeriodically()
+    }
+    private fun updateTimePeriodically() {
+        GlobalScope.launch {
+            while (true) {
+                delay(1000) // Update every 1 second
+                currentTime = Calendar.getInstance().time
+            }
+        }
+    }
+
     @Composable
     fun weatherIcon(): ImageBitmap {
         val sun = ImageBitmap.imageResource(R.drawable.sun)
@@ -25,21 +45,9 @@ class ViewModel: ViewModel(){
             "Raining" -> raining
             else -> defaultWeather
         }
-
-    }
-
-    @Composable
-    fun getTime(): String {
-        val timeFormat = remember { SimpleDateFormat("hh:mm \na", Locale.getDefault()) }
-
-        return timeFormat.format(calendar.time)
-    }
-    fun getMonth(): String {
-        val dateFormat = SimpleDateFormat("MM", Locale.getDefault())
-        return dateFormat.format(calendar.time)
-    }
-    fun getDay(): String {
-        val dateFormat = SimpleDateFormat("dd", Locale.getDefault())
-        return dateFormat.format(calendar.time)
     }
 }
+
+
+
+
