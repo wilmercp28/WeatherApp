@@ -1,8 +1,6 @@
 package com.example.weatherapp
 
-import android.graphics.ColorSpace
 import android.os.Bundle
-import android.widget.TextClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -20,7 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,16 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.ui.theme.WeatherAppTheme
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.time.Clock
-import java.util.Locale
+
 
 class View : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,6 +57,7 @@ fun WeatherAppPreview() {
 }
 @Composable
 fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
+    var weatherData by remember { mutableStateOf<WeatherData?>(null) }
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -74,7 +68,7 @@ fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
             .background(MaterialTheme.colorScheme.primary)
     )
     Column(modifier = Modifier.fillMaxSize()){
-Box(
+Column(
     modifier = Modifier
         .background(MaterialTheme.colorScheme.primary)
         .fillMaxSize(),
@@ -82,24 +76,23 @@ Box(
     Row(
         modifier = Modifier
             .height(200.dp)
-            .fillMaxWidth()
-            .align(Alignment.TopCenter),
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.SpaceAround
     ) {
         // Time Text
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = SimpleDateFormat("hh:mm").format(viewModel.currentTime),
-                fontSize = 40.sp,
+                text = viewModel.formattedTime,
+                fontSize = 60.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
-                text = SimpleDateFormat("a").format(viewModel.currentTime),
-                fontSize = 40.sp,
+                text = viewModel.formattedAmPm,
+                fontSize = 15.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -108,25 +101,33 @@ Box(
         Image(
             bitmap = viewModel.weatherIcon(), contentDescription = "",
             modifier = Modifier
-                .size(150.dp),
+                .size(100.dp),
             contentScale = ContentScale.Fit
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = SimpleDateFormat("dd").format(viewModel.currentTime),
+                text = viewModel.formattedDay,
                 fontSize = 60.sp,
                 color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = SimpleDateFormat("MM").format(viewModel.currentTime),
-                fontSize = 30.sp,
+                text = viewModel.formattedMonth,
+                fontSize = 15.sp,
                 color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center
             )
         }
+    }
+    Row(
+        modifier = Modifier
+            .height(100.dp)
+            .fillMaxWidth()
+    ) {
+        Text(text = WeatherAPI("49338c40fc6197e95db0757dfc52177f").getTemperature().toString())
+
     }
 
 

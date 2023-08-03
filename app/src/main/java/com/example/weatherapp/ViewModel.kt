@@ -1,31 +1,51 @@
 package com.example.weatherapp
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.imageResource
-import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 open class ViewModel {
+    private val viewModelScope = CoroutineScope(Dispatchers.Main)
     private var weather = "Cloudy"
-    var currentTime by mutableStateOf(Calendar.getInstance().time)
+    private var currentTime: Date by mutableStateOf(Calendar.getInstance().time)
+    private val locale: Locale = Locale.getDefault()
+    val formattedTime: String = SimpleDateFormat("hh:mm", locale).format(currentTime)
+    val formattedAmPm: String = SimpleDateFormat("a", locale).format(currentTime)
+    val formattedDay: String = SimpleDateFormat("dd", locale).format(currentTime)
+    val formattedMonth: String = SimpleDateFormat("MM",locale).format(currentTime)
+    val _weatherData: MutableState<WeatherData?> = mutableStateOf(null)
+    private val apiKey = "49338c40fc6197e95db0757dfc52177f"
+    private val weatherApi = WeatherAPI(apiKey)
+    val weatherData = mutableStateOf<WeatherData?>(null)
+
+
+    fun fetchWeatherData(latitude: Double, longitude: Double) {
+        CoroutineScope(Dispatchers.IO).launch {
+            GlobalScope.launch(Dispatchers.IO) {
+                weatherApi.getWeatherData(latitude, longitude) { data ->
+                    weatherData.value = data
+                }
+            }
+        }
+    }
+
     init {
         updateTimePeriodically()
     }
     private fun updateTimePeriodically() {
-        GlobalScope.launch {
+        viewModelScope.launch {
             while (true) {
                 delay(1000) // Update every 1 second
                 currentTime = Calendar.getInstance().time
