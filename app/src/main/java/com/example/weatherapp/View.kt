@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -61,6 +62,13 @@ fun WeatherAppPreview() {
 }
 @Composable
 fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
+    var weatherData = viewModel.weatherData
+    LaunchedEffect(weatherData) {
+        // Wait for the weather data to become available
+        if (weatherData == null) {
+            viewModel.fetchWeatherData()
+        }
+    }
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -128,11 +136,20 @@ Column(
             .height(100.dp)
             .fillMaxWidth()
     ) {
-            Text(text = "")
+
+
+            Text(
+                text = "Temperature: $weatherData.temp.toString()",
+                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onPrimary,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
     }
     }
 
-}
+
+
 
