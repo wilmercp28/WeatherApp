@@ -16,6 +16,7 @@ class WeatherAPI(private val apiKey: String) {
         .build()
     private var temperature: Double = 0.0
 
+
     fun getWeatherData(
         latitude: Double,
         longitude: Double,
