@@ -1,65 +1,76 @@
 package com.example.weatherapp
 
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.logging.HttpLoggingInterceptor
-import java.io.IOException
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.call.receive
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.DefaultRequest
+import io.ktor.client.request.HttpRequest
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
+import io.ktor.client.request.request
+import io.ktor.client.statement.HttpResponse
+import io.ktor.http.Url
+import io.ktor.http.isSuccess
 
 class WeatherAPI(private val apiKey: String) {
-    private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        })
-        .build()
-    private var temperature: Double = 0.0
+    private val client = HttpClient(CIO)
+    data class WeatherData(
+        val lat: Double,
+        val lon: Double,
+        val timezone: String,
+        val timezone_offset: Int,
+        val current: CurrentWeather,
 
+    )
 
-    fun getWeatherData(
-        latitude: Double,
-        longitude: Double,
-        exclude: String? = null,
-        units: String? = null,
-        lang: String? = null,
-        callback: (WeatherData?) -> Unit
+    data class TemperatureInfo(
+        val day: Double,
+        val min: Double,
+        val max: Double,
+        val night: Double,
+        val eve: Double,
+        val morn: Double
+    )
+    data class CurrentWeather(
+        val dt: Long,
+        val sunrise: Long,
+        val sunset: Long,
+        val temp: Double,
+        val feels_like: Double,
+        val pressure: Int,
+        val humidity: Int,
+        val dew_point: Double,
+        val uvi: Double,
+        val clouds: Int,
+        val visibility: Int,
+        val wind_speed: Double,
+        val wind_deg: Int,
+        val wind_gust: Double,
+        val weather: List<WeatherInfo>
+    )
+    data class WeatherInfo(
+        val id: Int,
+        val main: String,
+        val description: String,
+        val icon: String
+    )
 
-    ){
-        val url = "https://api.openweathermap.org/data/3.0/onecall" +
-                "?lat=$latitude&lon=$longitude&appid=$apiKey" +
-                if (exclude != null) "&exclude=$exclude" else "" +
-                        if (units != null) "&units=$units" else "" +
-                                if (lang != null) "&lang=$lang" else ""
-
-        val request = Request.Builder()
-            .url(url)
-            .build()
-
-        httpClient.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                callback(null)
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                val responseData = response.body?.string()
-                val weatherData = parseWeatherData(responseData)
-                temperature = weatherData?.temperature ?: 0.0
-                callback(weatherData)
-            }
-        })
+    suspend fun getWeatherData(lat: Double, lon: Double, exclude: String): HttpResponse? {
+        val url = "https://api.openweathermap.org/data/3.0/onecall"
+        val response: HttpResponse = client.request("$url"){
+            parameter("lat", lat)
+            parameter("lon", lon)
+            parameter("exclude", exclude)
+            parameter("appid", apiKey)
+        }
+        if (response != null) {
+            return response
+        }
+            return null
+        }
     }
-    private fun parseWeatherData(responseData: String?): WeatherData? {
-        // Implement JSON parsing logic here to parse the API response
-        // and return the WeatherData object
-        return null
-    }
-    fun getTemperature(): Double {
-        return temperature
-    }
-}
-data class WeatherData(
-val temperature: Double,
-)
+
+
 
 

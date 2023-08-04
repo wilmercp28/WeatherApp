@@ -1,12 +1,12 @@
 package com.example.weatherapp
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,10 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -30,6 +27,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherapp.ui.theme.WeatherAppTheme
+import io.ktor.client.statement.HttpResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class View : ComponentActivity() {
@@ -43,11 +44,14 @@ class View : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     WeatherAppPreview()
+
                 }
             }
         }
     }
 }
+
+
 @Preview(showBackground = true)
 @Composable
 fun WeatherAppPreview() {
@@ -57,7 +61,10 @@ fun WeatherAppPreview() {
 }
 @Composable
 fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
-    var weatherData by remember { mutableStateOf<WeatherData?>(null) }
+   LaunchedEffect(Unit) {
+        Log.d("Hello", getWeatherData().toString())
+    }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -97,7 +104,6 @@ Column(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-
         Image(
             bitmap = viewModel.weatherIcon(), contentDescription = "",
             modifier = Modifier
@@ -126,14 +132,19 @@ Column(
             .height(100.dp)
             .fillMaxWidth()
     ) {
-        Text(text = WeatherAPI("49338c40fc6197e95db0757dfc52177f").getTemperature().toString())
-
+        Text(text = "")
     }
 
-
     }
-
 }
     }
+}
+
+suspend fun getWeatherData(): HttpResponse? {
+    val apiKey =
+        "49338c40fc6197e95db0757dfc52177f" // Replace this with your actual OpenWeatherMap API key
+    val weatherAPI = WeatherAPI("49338c40fc6197e95db0757dfc52177f")
+    return weatherAPI.getWeatherData(40.713050, -74.007230, "minutely")
+
 
 }
