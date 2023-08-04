@@ -1,6 +1,7 @@
 package com.example.weatherapp
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONException
+import org.json.JSONObject
+import java.io.Serializable
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -29,7 +33,8 @@ open class ViewModel {
     val formattedTime: String = SimpleDateFormat("hh:mm", locale).format(currentTime)
     val formattedAmPm: String = SimpleDateFormat("a", locale).format(currentTime)
     val formattedDay: String = SimpleDateFormat("dd", locale).format(currentTime)
-    val formattedMonth: String = SimpleDateFormat("MM",locale).format(currentTime)
+    val formattedMonth: String = SimpleDateFormat("MM", locale).format(currentTime)
+
     private fun updateTimePeriodically() {
         viewModelScope.launch {
             while (true) {
@@ -51,6 +56,12 @@ open class ViewModel {
             else -> sun
         }
     }
+
+    @Composable
+    fun weatherData() {
+
+
+}
 }
 
 

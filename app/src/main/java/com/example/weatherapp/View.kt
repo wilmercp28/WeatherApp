@@ -61,10 +61,6 @@ fun WeatherAppPreview() {
 }
 @Composable
 fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
-   LaunchedEffect(Unit) {
-        Log.d("Hello", getWeatherData().toString())
-    }
-
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -132,19 +128,11 @@ Column(
             .height(100.dp)
             .fillMaxWidth()
     ) {
-        Text(text = "")
-    }
-
+            Text(text = "")
     }
 }
     }
-}
-
-suspend fun getWeatherData(): HttpResponse? {
-    val apiKey =
-        "49338c40fc6197e95db0757dfc52177f" // Replace this with your actual OpenWeatherMap API key
-    val weatherAPI = WeatherAPI("49338c40fc6197e95db0757dfc52177f")
-    return weatherAPI.getWeatherData(40.713050, -74.007230, "minutely")
-
+    }
 
 }
+
