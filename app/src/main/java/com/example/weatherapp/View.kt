@@ -1,9 +1,12 @@
 package com.example.weatherapp
 
+import android.graphics.Matrix.ScaleToFit
+import android.icu.number.Scale
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,15 +21,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
+import coil.request.ImageRequest
 import com.example.weatherapp.ui.theme.WeatherAppTheme
 import io.ktor.client.statement.HttpResponse
 import kotlinx.coroutines.CoroutineScope
@@ -61,14 +71,23 @@ fun WeatherAppPreview() {
     }
 }
 @Composable
-fun WeatherAppUI(viewModel: ViewModel = ViewModel()){
-    var weatherData = viewModel.weatherData
-    LaunchedEffect(weatherData) {
-        // Wait for the weather data to become available
-        if (weatherData == null) {
-            viewModel.fetchWeatherData()
-        }
-    }
+fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
+    val weatherData by viewModel.weatherData
+    val weatherIconCode = weatherData?.current?.weather?.get(0)?.icon
+
+    val baseUrl = "https://openweathermap.org/img/wn/"
+    val iconSize = "@2x.png"
+    val iconUrl = "$baseUrl$weatherIconCode$iconSize"
+
+    val painter = rememberAsyncImagePainter(model = iconUrl)
+
+
+
+
+    DisposableEffect(Unit) {
+        viewModel.fetchWeatherData()
+        onDispose { /* Clean up if needed */ }
+}
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -84,12 +103,25 @@ Column(
         .background(MaterialTheme.colorScheme.primary)
         .fillMaxSize(),
 ) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AsyncImage(
+            model = iconUrl,
+            contentDescription = null,
+            modifier = Modifier
+                .size(300.dp),
+            contentScale = ContentScale.Fit
+        )
+        Text(
+            text = weatherData?.current?.weather?.get(0)?.description.toString())
+    }
     Row(
         modifier = Modifier
             .height(200.dp)
             .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceAround
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         // Time Text
         Column(
@@ -97,7 +129,7 @@ Column(
         ) {
             Text(
                 text = viewModel.formattedTime,
-                fontSize = 60.sp,
+                fontSize = 40.sp,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -108,18 +140,12 @@ Column(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-        Image(
-            bitmap = viewModel.weatherIcon(), contentDescription = "",
-            modifier = Modifier
-                .size(100.dp),
-            contentScale = ContentScale.Fit
-        )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = viewModel.formattedDay,
-                fontSize = 60.sp,
+                fontSize = 40.sp,
                 color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center
             )
@@ -131,24 +157,15 @@ Column(
             )
         }
     }
-    Row(
-        modifier = Modifier
-            .height(100.dp)
-            .fillMaxWidth()
+    Column(
+
     ) {
 
-
-            Text(
-                text = "Temperature: $weatherData.temp.toString()",
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.onPrimary,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
     }
     }
+}
 
 
 

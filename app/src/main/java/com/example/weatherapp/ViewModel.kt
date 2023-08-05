@@ -30,44 +30,43 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
  class ViewModel {
-     var weatherData: Data? by mutableStateOf(null)
-    private val viewModelScope = CoroutineScope(Dispatchers.Main)
-    private var weather = "Cloudy"
-    private var currentTime: Date by mutableStateOf(Calendar.getInstance().time)
-    private val locale: Locale = Locale.getDefault()
-    val formattedTime: String = SimpleDateFormat("hh:mm", locale).format(currentTime)
-    val formattedAmPm: String = SimpleDateFormat("a", locale).format(currentTime)
-    val formattedDay: String = SimpleDateFormat("dd", locale).format(currentTime)
-    val formattedMonth: String = SimpleDateFormat("MM", locale).format(currentTime)
-    init {
-        fetchWeatherData()
-    }
+     var weatherData: MutableState<Data?> = mutableStateOf(null)
+     private val viewModelScope = CoroutineScope(Dispatchers.Main)
+     private var weather = "Cloudy"
+     private var currentTime: Date by mutableStateOf(Calendar.getInstance().time)
+     private val locale: Locale = Locale.getDefault()
+     val formattedTime: String = SimpleDateFormat("hh:mm", locale).format(currentTime)
+     val formattedAmPm: String = SimpleDateFormat("a", locale).format(currentTime)
+     val formattedDay: String = SimpleDateFormat("dd", locale).format(currentTime)
+     val formattedMonth: String = SimpleDateFormat("MM", locale).format(currentTime)
      fun fetchWeatherData() {
-        viewModelScope.launch {
-            try {
-                val lat = 40.712776 // Your latitude
-                val lon = -74.005974 // Your longitude
-                val apiKey ="983609e5f914830a669a8dd853fd34cb" // Your API key
+         if (weatherData.value == null) { // Check if data is already available
+             viewModelScope.launch {
+                 try {
+                     val lat = 40.712776 // Your latitude
+                     val lon = -74.005974 // Your longitude
+                     val apiKey = "983609e5f914830a669a8dd853fd34cb" // Your API key
+                     val weatherAPI = WeatherAPI
+                     weatherData.value = weatherAPI.getWeatherData(lat, lon, apiKey)
+                     Log.d("1Temo", weatherData.value.toString())
 
-                val weatherAPI = WeatherAPI()
-                weatherData = weatherAPI.getWeatherData(lat, lon, apiKey)
-                Log.d("1Temo",weatherData.toString())
-
-            } catch (e: Exception) {
-            }
-        }
-    }
-    @Composable
-    fun weatherIcon(): ImageBitmap {
-        val sun = ImageBitmap.imageResource(R.drawable.sun)
-        val cloudy = ImageBitmap.imageResource(R.drawable.cloudy)
-        val raining = ImageBitmap.imageResource(R.drawable.raining)
-        return when (weather) {
-            "Sunny" -> sun
-            "Cloudy" -> cloudy
-            "Raining" -> raining
-            else -> sun
-        }
+                 } catch (e: Exception) {
+                     // Handle the error if needed
+                 }
+             }
+         }
+     }
+ }
+@Composable
+fun WeatherIcon(weatherIconName: String): ImageBitmap {
+    val sun = ImageBitmap.imageResource(R.drawable.sun)
+    val cloudy = ImageBitmap.imageResource(R.drawable.cloudy)
+    val raining = ImageBitmap.imageResource(R.drawable.raining)
+    return when (weatherIconName) {
+        "Sunny" -> sun
+        "Cloudy" -> cloudy
+        "Raining" -> raining
+        else -> sun
     }
 }
 
