@@ -26,7 +26,9 @@ object WeatherAPI{
             return cachedWeatherData
         }
     }
-
+    fun clearCache() {
+        cachedWeatherData = null
+    }
 }
 
 

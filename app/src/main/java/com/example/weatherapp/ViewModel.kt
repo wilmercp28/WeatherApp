@@ -3,6 +3,7 @@ package com.example.weatherapp
 import android.util.Log
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,6 +14,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.roundToInt
 
 class ViewModel {
@@ -23,15 +25,19 @@ class ViewModel {
     val formattedTime: String = SimpleDateFormat("hh:mm a", locale).format(currentTime)
     val formattedDayAndMonth: String = SimpleDateFormat("MM dd", locale).format(currentTime)
     var currentTemperature: Int? by mutableStateOf(null)
-    var unit = "imperial"
-    var unitLetter = when(unit){
-        "imperial" -> "F"
-        "metric" -> "C"
-        else -> {"Invalid"}
+    var unit:String by mutableStateOf("imperial")
+    val unitLetter: String by derivedStateOf {
+        when (unit) {
+            "imperial" -> "F"
+            "metric" -> "C"
+            else -> "Invalid"
+        }
     }
     var currentWeatherIcon: String? by mutableStateOf(null)
     var currentWeatherDescription: String? by mutableStateOf(null)
     var currentTemperatureFeelsLike: Int? by mutableStateOf(null)
+    var cityName: String? by mutableStateOf(null)
+    var forecastTime: String? by mutableStateOf(null)
      fun fetchWeatherData() {
          if (weatherData.value == null) { // Check if data is already available
              viewModelScope.launch {
@@ -39,8 +45,8 @@ class ViewModel {
                      val lat = 40.712776 // Your latitude
                      val lon = -74.005974 // Your longitude
                      val apiKey = "983609e5f914830a669a8dd853fd34cb" // Your API key
-                     val weatherAPI = WeatherAPI
-                     weatherData.value = weatherAPI.getWeatherData(lat, lon, apiKey, unit)
+                     val currentUnit = unit
+                     weatherData.value = WeatherAPI.getWeatherData(lat, lon, apiKey, currentUnit)
                      formatData()
                      Log.d("1Temo", weatherData.value.toString())
                  } catch (e: Exception) {
@@ -56,9 +62,20 @@ class ViewModel {
             currentWeatherIcon = "https://openweathermap.org/img/wn/$currentWeatherIconCode@2x.png"
             currentWeatherDescription = weatherData.value?.current?.weather?.get(0)?.description
             currentTemperatureFeelsLike = weatherData.value?.current?.feels_like?.roundToInt()
+            cityName = weatherData.value?.timezone?.substringAfterLast("/")?.replace("_"," ")
+            forecastTime = convertUnixTimeToLocalTime(weatherData.value?.hourly?.get(0)?.dt!!)
         }
     }
+    fun convertUnixTimeToLocalTime(unixTime: Long): String {
+        val utcTimeInMillis = unixTime * 1000 // Convert to milliseconds
+        val timeZone = TimeZone.getDefault() // Get the default time zone
+        val localTimeInMillis = utcTimeInMillis + timeZone.rawOffset // Apply time zone offset
+        val localDate = Date(localTimeInMillis)
+        val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault()) // Adjust the format as needed
+        return dateFormat.format(localDate)
+    }
  }
+
 
 
 
