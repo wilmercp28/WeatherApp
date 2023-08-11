@@ -2,10 +2,12 @@ package com.example.weatherapp
 
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,13 +19,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import com.example.weatherapp.ui.theme.WeatherAppTheme
+import java.time.format.TextStyle
 
 
 class View : ComponentActivity() {
@@ -83,7 +90,8 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             CityName(viewModel)
             Row(
@@ -94,7 +102,28 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
                 CurrentWeatherUI(viewModel)
             }
             Spacer(modifier = Modifier.size(30.dp))
-            ForecastHourly(viewModel)
+            Text(text = "Time of the forecast ${viewModel.forecastTimeDaily}")
+            AsyncImage(
+                model = viewModel.dailyWeatherIcon,
+                contentDescription = "Daily Weather Image",
+            modifier = Modifier
+                .size(100.dp))
+            if (viewModel.dailySummary == null){
+                CircularProgressIndicator()
+            } else {
+                Text(text = viewModel.dailySummary.toString(), textAlign = TextAlign.Center, fontSize = 20.sp)
+            }
+            Row(
+            ) {
+                Forecast("Morning",viewModel.morningTemperature.toString(),viewModel.unitLetter)
+                Spacer(modifier = Modifier.weight(1f))
+                Forecast("Day",viewModel.dayTemperature.toString(),viewModel.unitLetter)
+                Spacer(modifier = Modifier.weight(1f))
+                Forecast("Evening",viewModel.eveningTemperature.toString(),viewModel.unitLetter)
+                Spacer(modifier = Modifier.weight(1f))
+                Forecast("Night",viewModel.nightTemperature.toString(),viewModel.unitLetter)
+            }
+
         }
     }
 }
@@ -137,22 +166,23 @@ fun TemperatureUI(viewModel: ViewModel) {
                             modifier = Modifier,
                             text = {Text(text = "Fahrenheit")},
                             onClick = {
-                                viewModel.unit = "imperial"
-                                WeatherAPI.clearCache()
-
+                                changeUnitAndletter(viewModel,"imperial","F")
+                                expanded = false
                             }
                         )
                         DropdownMenuItem(
                             text = {Text(text = "Celsius")},
                             onClick = {
-                                viewModel.unit = "metric"
-                                WeatherAPI.clearCache()
-
+                                changeUnitAndletter(viewModel,"metric","C")
+                                expanded = false
                             }
                         )
                         DropdownMenuItem(
                             text = {Text(text = "Kelvin")},
-                            onClick = {viewModel.unit = "standar"}
+                            onClick = {
+                                changeUnitAndletter(viewModel,"standar", "K")
+                                expanded = false
+                            }
                         )
                     }
                 }
@@ -170,9 +200,16 @@ fun TemperatureUI(viewModel: ViewModel) {
         }
     }
 }
+fun changeUnitAndletter(viewModel: ViewModel, unit: String, unitLetter: String){
+    viewModel.unit = unit
+    viewModel.unitLetter = unitLetter
+    WeatherAPI.clearCache()
+    viewModel.weatherData.value = null
+    viewModel.fetchWeatherData()
+}
 @Composable
 fun CurrentWeatherUI(viewModel: ViewModel) {
-    if(viewModel.currentWeatherIcon == ""){
+    if(viewModel.currentWeatherIcon == null){
         CircularProgressIndicator()
     } else {
         Column {
@@ -197,27 +234,46 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
     }
 }
 
+
 @Composable
 fun CityName(viewModel: ViewModel) {
-   Text(
-       text = viewModel.cityName.toString(),
-       fontSize = 40.sp,
-       textAlign = TextAlign.Center
-   )
+  BasicTextField(
+      value = viewModel.cityName.toString(),
+      onValueChange = { viewModel.cityName = it },
+      textStyle = androidx.compose.ui.text.TextStyle(
+          color = MaterialTheme.colorScheme.onBackground,
+          fontSize = 20.sp,
+          textAlign = TextAlign.Center),
+      singleLine = true
+  )
 
 }
 
 @Composable
-fun ForecastHourly(viewModel: ViewModel){
-    Row(
-    modifier = Modifier
-        .fillMaxWidth()
-    ) {
-    Column{
-Text(text = viewModel.forecastTime.toString())
-    }
-    }
-}
+fun Forecast(headerText: String,temp: String,unitletter: String){
+        Column(
+            modifier = Modifier,
+            horizontalAlignment = Alignment.CenterHorizontally
+
+        ) {
+            Text(text = headerText)
+            Row{
+                Text(
+                    text = temp,
+                    fontSize = 30.sp
+                )
+                Text(
+                    text = "o"
+                )
+                Text(
+                    text = unitletter,
+                fontSize = 20.sp
+                )
+            }
+            }
+        }
+
+
 
 
 
