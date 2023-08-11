@@ -1,9 +1,7 @@
 package com.example.weatherapp
 
 import android.util.Log
-import androidx.compose.material3.Switch
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,7 +17,9 @@ import kotlin.math.roundToInt
 
 class ViewModel {
     var weatherData: MutableState<Data?> = mutableStateOf(null)
-
+    var geoData: MutableState<GeoData?> = mutableStateOf(null)
+    var lat: String? by mutableStateOf(null)
+    var lon: String? by mutableStateOf(null)
     private val viewModelScope = CoroutineScope(Dispatchers.Main)
     private var currentTime: Date by mutableStateOf(Calendar.getInstance().time)
     private val locale: Locale = Locale.getDefault()
@@ -39,32 +39,35 @@ class ViewModel {
     var eveningTemperature: Int? by mutableStateOf(null)
     var nightTemperature: Int? by mutableStateOf(null)
     var dailySummary: String? by mutableStateOf(null)
+    var zipCode: String? by mutableStateOf(null)
+
 
 
 
      fun fetchWeatherData() {
-         if (weatherData.value == null) { // Check if data is already available
+         if (weatherData.value == null) {
              viewModelScope.launch {
+                 if (lat == null && lon == null){
+                     geoData.value = GeocodingAPI.getGeoData(zipCode)
+                     lat = geoData.value?.lat.toString()
+                     lon = geoData.value?.lon.toString()
+                     Log.d("geoData", geoData.value.toString())
+                 } else if (lat != null && lon != null && weatherData.value == null) {
                  try {
-                     val lat = 40.712776 // Your latitude
-                     val lon = -74.005974 // Your longitude
-                     val apiKey = "983609e5f914830a669a8dd853fd34cb" // Your API key
+                     val lat = lat.toString() // Your latitude
+                     val lon = lon.toString() // Your longitude
                      val currentUnit = unit
-                     weatherData.value = WeatherAPI.getWeatherData(lat, lon, apiKey, currentUnit)
+                     weatherData.value = WeatherAPI.getWeatherData(lat, lon, currentUnit)
                      formatData()
                      Log.d("1Temo", weatherData.value.toString())
                      Log.d("Unit ViewModel", currentUnit)
                  } catch (e: Exception) {
                      // Handle the error if needed
                  }
-
+                 }
              }
          }
      }
-    fun fetchGeoData(){
-
-
-    }
     fun formatData(){
         viewModelScope.launch {
             currentTemperature = weatherData.value?.current?.temp?.roundToInt()
@@ -79,9 +82,9 @@ class ViewModel {
             dailyWeatherIcon = "https://openweathermap.org/img/wn/$dailyWeatherIconCode@2x.png"
             currentWeatherDescription = weatherData.value?.current?.weather?.get(0)?.description
             currentTemperatureFeelsLike = weatherData.value?.current?.feels_like?.roundToInt()
-            cityName = weatherData.value?.timezone?.substringAfterLast("/")?.replace("_"," ")
             forecastTimeDaily = convertUnixTimeToLocalTime(weatherData.value?.daily?.get(0)?.dt!!)
             dailySummary = weatherData.value?.daily?.get(0)?.summary
+            cityName = geoData.value?.name
         }
     }
     fun convertUnixTimeToLocalTime(unixTime: Long): String {
@@ -91,6 +94,9 @@ class ViewModel {
         val localDate = Date(localTimeInMillis)
         val dateFormat = SimpleDateFormat("HH:mm a", Locale.getDefault()) // Adjust the format as needed
         return dateFormat.format(localDate)
+    }
+    fun updateZipCode(newZipCode: String) {
+        zipCode = newZipCode
     }
  }
 

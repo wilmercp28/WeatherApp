@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -37,8 +38,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -93,7 +100,7 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            CityName(viewModel)
+            ZipCodeTextField(viewModel)
             Row(
                 Modifier.fillMaxWidth()
             ) {
@@ -235,18 +242,29 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
 }
 
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun CityName(viewModel: ViewModel) {
-  BasicTextField(
-      value = viewModel.cityName.toString(),
-      onValueChange = { viewModel.cityName = it },
-      textStyle = androidx.compose.ui.text.TextStyle(
-          color = MaterialTheme.colorScheme.onBackground,
-          fontSize = 20.sp,
-          textAlign = TextAlign.Center),
-      singleLine = true
-  )
-
+fun ZipCodeTextField(viewModel: ViewModel) {
+    var zipCode by remember { mutableStateOf(viewModel.zipCode.toString()) }
+    BasicTextField(
+        value = zipCode,
+        onValueChange = { zipCode = it},
+        keyboardActions = KeyboardActions(
+            onDone ={
+                viewModel.updateZipCode(zipCode)
+                viewModel.fetchWeatherData()
+            } ),
+        textStyle = androidx.compose.ui.text.TextStyle(
+            color = MaterialTheme.colorScheme.onBackground,
+            fontSize = 20.sp,
+            textAlign = TextAlign.Center),
+        singleLine = true
+    )
+    if (viewModel.geoData == null){
+        CircularProgressIndicator()
+    } else {
+        Text(text = viewModel.cityName.toString())
+    }
 }
 
 @Composable

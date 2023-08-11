@@ -11,13 +11,14 @@ import io.ktor.client.statement.HttpResponse
 object WeatherAPI{
     private val client = HttpClient()
     private var cachedWeatherData: Data? = null
-    suspend fun getWeatherData(lat: Double, lon: Double, appid: String, unit: String): Data? {
+    val apiKey = "983609e5f914830a669a8dd853fd34cb"
+    suspend fun getWeatherData(lat: String, lon: String, unit: String): Data? {
         if (cachedWeatherData != null) {
             Log.d("WeatherAPI Cache", "Raw JSON response: $cachedWeatherData")
             return cachedWeatherData
         } else {
             val httpResponse: HttpResponse =
-                client.get("https://api.openweathermap.org/data/3.0/onecall?lat=$lat&lon=$lon&units=$unit&appid=$appid")
+                client.get("https://api.openweathermap.org/data/3.0/onecall?lat=$lat&lon=$lon&units=$unit&appid=$apiKey")
             val weatherDataJson = httpResponse.body<String>()
             Log.d("WeatherAPI", "Raw JSON response: $weatherDataJson")
             val gson = Gson()
