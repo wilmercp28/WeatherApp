@@ -29,6 +29,7 @@ object WeatherAPI{
     }
     fun clearCache() {
         cachedWeatherData = null
+        Log.d("WeatherDataCache","Cache Clear!!")
     }
 }
 

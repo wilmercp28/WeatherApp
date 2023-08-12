@@ -1,10 +1,11 @@
 package com.example.weatherapp
 
+import io.ktor.util.StringValues
+
 data class GeoData(
+    val zip: String,
     val name: String,
-    val local_names: Map<String, String>,
-    val lat: Double,
-    val lon: Double,
-    val country: String,
-    val state: String
+    val lat: String,
+    val lon: String,
+    val country: String
 )

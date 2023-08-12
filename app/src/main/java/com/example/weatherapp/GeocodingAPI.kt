@@ -26,5 +26,9 @@ object GeocodingAPI{
             return cachedGeoData
         }
     }
+    fun clearCache() {
+        cachedGeoData = null
+
+    }
 
 }
