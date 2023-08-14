@@ -3,13 +3,10 @@ package com.example.weatherapp
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,18 +17,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActionScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,34 +32,21 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import com.example.weatherapp.ui.theme.WeatherAppTheme
-import java.time.format.TextStyle
-import java.util.concurrent.TimeUnit
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 
 class View : ComponentActivity() {
@@ -105,7 +83,7 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
+            .background(MaterialTheme.colorScheme.background)
             .padding(40.dp)
     ) {
         Column(
@@ -121,41 +99,29 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
                     Spacer(modifier = Modifier.weight(1f))
                     CurrentWeatherUI(viewModel)
                 }
-                Spacer(modifier = Modifier.size(30.dp))
-                Text(text = "Time of the forecast ${viewModel.forecastTimeDaily}")
-                AsyncImage(
-                    model = viewModel.dailyWeatherIcon,
-                    contentDescription = "Daily Weather Image",
-                    modifier = Modifier
-                        .size(100.dp)
-                )
-
-                    Text(
-                        text = viewModel.dailySummary.toString(),
-                        textAlign = TextAlign.Center,
-                        fontSize = 20.sp
-                    )
-
-                Row(
+            // Make it Into a Row
+                Column(
                 ) {
-                    Forecast(
-                        "Morning",
-                        viewModel.morningTemperature.toString(),
-                        viewModel.unitLetter
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Forecast("Day", viewModel.dayTemperature.toString(), viewModel.unitLetter)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Forecast(
-                        "Evening",
-                        viewModel.eveningTemperature.toString(),
-                        viewModel.unitLetter
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Forecast("Night", viewModel.nightTemperature.toString(), viewModel.unitLetter)
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(0))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(1))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(2))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(3))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(4))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(5))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(6))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(7))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(9))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(10))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(11))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(12))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(13))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(14))
+                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(15))
+                    val currentTime = Calendar.getInstance().time
+                    val formattedTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                    Text(text = formattedTime.format(currentTime))
                 }
             }
-
         }
     }
 
@@ -179,8 +145,7 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
                     modifier = Modifier
                         .offset(y = 20.dp)
                 )
-                Box(
-                ) {
+                Box{
                     Text(
                         text = viewModel.unitLetter,
                         modifier = Modifier
@@ -192,25 +157,24 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(MaterialTheme.colorScheme.primary),
                             ) {
                         DropdownMenuItem(
                             modifier = Modifier,
-                            text = {Text(text = "Fahrenheit")},
+                            text = {Text(text = "Fahrenheit (F)")},
                             onClick = {
                                 changeUnitAndletter(viewModel,"imperial","F",context)
                                 expanded = false
                             }
                         )
                         DropdownMenuItem(
-                            text = {Text(text = "Celsius")},
+                            text = {Text(text = "Celsius (C)",)},
                             onClick = {
                                 changeUnitAndletter(viewModel,"metric","C",context)
                                 expanded = false
                             }
                         )
                         DropdownMenuItem(
-                            text = {Text(text = "Kelvin")},
+                            text = {Text(text = "Kelvin (K)")},
                             onClick = {
                                 changeUnitAndletter(viewModel,"standar", "K",context)
                                 expanded = false
@@ -279,22 +243,23 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
             onValueChange = { viewModel.zipCode = it },
             modifier = Modifier
                 .width(200.dp),
-            placeholder = {
-                if(!viewModel.isValidZipCode){
-                    Text(
-                    text = "  Invalid Zip Code",
-                    textAlign = TextAlign.Center,
+            label = {
+                Text(
+                    text = "Zip Code",
                     )
+                    },
+            placeholder = {
+                if (!viewModel.isValidZipCode) {
+                    Text(
+                        text = "  Invalid Zip Code",
+                        )
                 } else {
                     Text(
                         text = "  Enter Your Zip Code",
-                        textAlign = TextAlign.Center,
-                    )
+                        )
                 }
-
-            },
+                          },
             textStyle = androidx.compose.ui.text.TextStyle(
-                textAlign = TextAlign.Center
             ),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -302,32 +267,29 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
                 onDone = {
                     viewModel.fetchGeoData(context)
                 }
+            ),
             )
-        )
+    Spacer(modifier = Modifier.size(20.dp))
+    if (viewModel.cityName == null){
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+    }else {
+        Text(text = viewModel.cityName.toString())
     }
-@Composable
-fun Forecast(headerText: String,temp: String,unitletter: String){
-        Column(
-            modifier = Modifier,
-            horizontalAlignment = Alignment.CenterHorizontally
+}
 
-        ) {
-            Text(text = headerText)
-            Row{
-                Text(
-                    text = temp,
-                    fontSize = 30.sp
-                )
-                Text(
-                    text = "o"
-                )
-                Text(
-                    text = unitletter,
-                fontSize = 20.sp
-                )
-            }
-            }
+@Composable
+fun ForeCast(viewModel: ViewModel, list: ForecastItem?){
+    if (list == null){
+        CircularProgressIndicator()
+    } else {
+        val forecastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!)
+        Column {
+            Text(text = forecastTime)
         }
+    }
+}
+
+
 
 
 

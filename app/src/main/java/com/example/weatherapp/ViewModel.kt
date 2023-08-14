@@ -22,13 +22,12 @@ import kotlin.math.roundToInt
 class ViewModel{
     var weatherData: MutableState<Data?> = mutableStateOf(null)
     var geoData: MutableState<GeoData?> = mutableStateOf(null)
+    var foreCastData: MutableState<ForecastData?> = mutableStateOf(null)
     var lat: String? by mutableStateOf(null)
     var lon: String? by mutableStateOf(null)
     private val viewModelScope = CoroutineScope(Dispatchers.Main)
-    private var currentTime: Date by mutableStateOf(Calendar.getInstance().time)
+    var currentTime: Date by mutableStateOf(Calendar.getInstance().time)
     private val locale: Locale = Locale.getDefault()
-    val formattedTime: String = SimpleDateFormat("hh:mm a", locale).format(currentTime)
-    val formattedDayAndMonth: String = SimpleDateFormat("MM dd", locale).format(currentTime)
     var currentTemperature: Int? by mutableStateOf(null)
     var unit:String by mutableStateOf("metric")
     var unitLetter by mutableStateOf("C")
@@ -52,7 +51,8 @@ class ViewModel{
             viewModelScope.launch {
                 val currentUnit = unit
                 weatherData.value = WeatherAPI.getWeatherData(lat.toString(), lon.toString(), currentUnit)
-                if (weatherData.value != null) {
+                foreCastData.value = ForecastAPI.getForecastData(lat.toString(),lon.toString(),currentUnit)
+                if (weatherData.value != null && foreCastData.value != null) {
                     formatData()
                 }
             }
@@ -108,12 +108,12 @@ class ViewModel{
             cityName = geoData.value?.name
         }
     }
-    private fun convertUnixTimeToLocalTime(unixTime: Long): String {
+    fun convertUnixTimeToLocalTime(unixTime: Long): String {
         val utcTimeInMillis = unixTime * 1000 // Convert to milliseconds
         val timeZone = TimeZone.getDefault() // Get the default time zone
         val localTimeInMillis = utcTimeInMillis + timeZone.rawOffset // Apply time zone offset
         val localDate = Date(localTimeInMillis)
-        val dateFormat = SimpleDateFormat("HH:mm a", Locale.getDefault()) // Adjust the format as needed
+        val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()) // Adjust the format as needed
         return dateFormat.format(localDate)
     }
     fun init(context: Context) {
