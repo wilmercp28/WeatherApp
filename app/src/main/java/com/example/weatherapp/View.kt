@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActionScope
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -38,10 +41,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -50,10 +55,12 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -264,40 +271,40 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
 
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
-    var zipCode: String by remember { mutableStateOf(viewModel.zipCode.toString()) }
-        BasicTextField(
-            value = zipCode,
-            onValueChange = { newValue ->
-                if (newValue.length <= 5) {
-                    zipCode = newValue
+        TextField(
+            value = viewModel.zipCode.toString(),
+            onValueChange = { viewModel.zipCode = it },
+            modifier = Modifier
+                .width(200.dp),
+            placeholder = {
+                if(!viewModel.isValidZipCode){
+                    Text(
+                    text = "  Invalid Zip Code",
+                    textAlign = TextAlign.Center,
+                    )
+                } else {
+                    Text(
+                        text = "  Enter Your Zip Code",
+                        textAlign = TextAlign.Center,
+                    )
                 }
-            },
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    viewModel.zipCode = zipCode
-                    try {
-                        viewModel.fetchGeoData(context)
-                    }catch (e: Exception){
 
-                    }
-                    ViewModel.SaveData.saveData(context, "zipCode", zipCode)
-                }),
+            },
             textStyle = androidx.compose.ui.text.TextStyle(
-                color = MaterialTheme.colorScheme.onBackground,
-                fontSize = 20.sp,
                 textAlign = TextAlign.Center
             ),
             singleLine = true,
-            keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Number
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    viewModel.fetchGeoData(context)
+                }
+            )
         )
-    Text(text = viewModel.cityName.toString())
-}
-
-
+    }
 @Composable
 fun Forecast(headerText: String,temp: String,unitletter: String){
         Column(

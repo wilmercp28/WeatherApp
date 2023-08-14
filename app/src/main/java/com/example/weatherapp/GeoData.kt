@@ -7,5 +7,7 @@ data class GeoData(
     val name: String,
     val lat: String,
     val lon: String,
-    val country: String
+    val country: String,
+    val cod: String,
+    val message: String
 )

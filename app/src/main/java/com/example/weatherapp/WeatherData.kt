@@ -16,7 +16,7 @@ data class Data(
     val minutely: List<MinutelyWeather>,
     val hourly: List<HourlyWeather>,
     val daily: List<DailyWeather>,
-    val alerts: List<Alert>?
+    val alerts: List<Alert>?,
 )
 
 data class CurrentWeather(

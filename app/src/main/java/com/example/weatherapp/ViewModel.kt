@@ -43,25 +43,21 @@ class ViewModel{
     var eveningTemperature: Int? by mutableStateOf(null)
     var nightTemperature: Int? by mutableStateOf(null)
     var dailySummary: String? by mutableStateOf(null)
-    var zipCode: String? by mutableStateOf("")
+    var zipCode: String? by mutableStateOf(null)
     var isCountingDown: Boolean by mutableStateOf(false)
     var whenToRefresh: Date by mutableStateOf(currentTime)
-     fun fetchWeatherData() {
-         Log.d("ZipCode", zipCode.toString())
-         if (weatherData.value == null) {
-             viewModelScope.launch {
-                 try {
-                     val currentUnit = unit
-                     weatherData.value = WeatherAPI.getWeatherData(lat.toString(), lon.toString(), currentUnit)
-                     formatData()
-                     Log.d("Unit ViewModel", currentUnit)
-
-                 } catch (e: Exception) {
-
-                 }
-             }
-         }
-     }
+    var isValidZipCode: Boolean by mutableStateOf(true)
+    fun fetchWeatherData() {
+        if (weatherData.value == null) {
+            viewModelScope.launch {
+                val currentUnit = unit
+                weatherData.value = WeatherAPI.getWeatherData(lat.toString(), lon.toString(), currentUnit)
+                if (weatherData.value != null) {
+                    formatData()
+                }
+            }
+        }
+    }
     fun fetchGeoData(context: Context) {
         if (zipCode != geoData.value?.zip){
             WeatherAPI.clearCache()
@@ -70,21 +66,31 @@ class ViewModel{
             geoData.value = null
         }
         viewModelScope.launch {
+            Log.d("ZipCode","ZipCode is $zipCode")
             if (zipCode != null) {
                 geoData.value = GeocodingAPI.getGeoData(zipCode)
-                lat = geoData.value?.lat
-                lon = geoData.value?.lon
-                Log.d("geoData", geoData.value.toString())
-                SaveData.saveData(context,"zipcode",zipCode)
-                if (weatherData.value != null) {
-                    fetchWeatherData()
+                Log.d("GeoData",geoData.value.toString())
+                if (geoData.value?.zip == null){
+                    Log.d("ZipCodeGeo",geoData.value?.zip.toString())
+                    isValidZipCode = false
+                   zipCode = ""
+                } else {
+                    lat = geoData.value?.lat
+                    lon = geoData.value?.lon
+                    SaveData.saveData(context, "zipcode", zipCode)
+                    Log.d("SaveData","Zip Code Saved, now is $zipCode")
+                    if (lat != null && lon != null) {
+                        SaveData.saveData(context,"zipCode",zipCode)
+                        isValidZipCode = true
+                        fetchWeatherData()
+                    }
                 }
             }
         }
     }
 
     fun formatData(){
-        Log.d("FOrmat","Data Formatted")
+        Log.d("Format","Data Formatted")
         viewModelScope.launch {
             currentTemperature = weatherData.value?.current?.temp?.roundToInt()
             morningTemperature = weatherData.value?.daily?.get(0)?.temp?.morn?.roundToInt()
@@ -111,13 +117,16 @@ class ViewModel{
         return dateFormat.format(localDate)
     }
     fun init(context: Context) {
-        WeatherAPI.clearCache()
-        if (SaveData.getData(context,"zipCode") == null){
+        Log.d("Init","Init Run")
+        if (SaveData.getData(context,"zipCode") == null) {
             zipCode = ""
+        } else{
+            zipCode = SaveData.getData(context, "zipCode")
+        }
+        if (SaveData.getData(context,"unit") == null){
             unit = "imperial"
             unitLetter = "F"
         } else {
-            zipCode = SaveData.getData(context, "zipCode")
             unit = SaveData.getData(context, "unit").toString()
             unitLetter = SaveData.getData(context, "unitLetter").toString()
         }
