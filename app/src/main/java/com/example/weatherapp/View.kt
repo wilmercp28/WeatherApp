@@ -4,6 +4,7 @@ package com.example.weatherapp
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -57,8 +58,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
-import androidx.work.PeriodicWorkRequest
-import androidx.work.WorkManager
 import coil.compose.AsyncImage
 import com.example.weatherapp.ui.theme.WeatherAppTheme
 import java.time.format.TextStyle
@@ -81,8 +80,6 @@ class View : ComponentActivity() {
         }
     }
 }
-
-
 @Preview(showBackground = true)
 @Composable
 fun WeatherAppPreview() {
@@ -95,7 +92,6 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
     val context = LocalContext.current
     viewModel.init(context)
     DisposableEffect(Unit) {
-
         viewModel.fetchGeoData(context)
         onDispose { /* Clean up if needed */ }
 }
@@ -281,8 +277,12 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
             keyboardActions = KeyboardActions(
                 onDone = {
                     viewModel.zipCode = zipCode
+                    try {
+                        viewModel.fetchGeoData(context)
+                    }catch (e: Exception){
+
+                    }
                     ViewModel.SaveData.saveData(context, "zipCode", zipCode)
-                    viewModel.fetchGeoData(context)
                 }),
             textStyle = androidx.compose.ui.text.TextStyle(
                 color = MaterialTheme.colorScheme.onBackground,

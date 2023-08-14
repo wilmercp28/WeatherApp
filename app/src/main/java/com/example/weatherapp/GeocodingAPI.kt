@@ -28,7 +28,6 @@ object GeocodingAPI{
     }
     fun clearCache() {
         cachedGeoData = null
-
     }
 
 }

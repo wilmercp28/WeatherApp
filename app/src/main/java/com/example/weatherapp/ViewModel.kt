@@ -43,7 +43,7 @@ class ViewModel{
     var eveningTemperature: Int? by mutableStateOf(null)
     var nightTemperature: Int? by mutableStateOf(null)
     var dailySummary: String? by mutableStateOf(null)
-    var zipCode: String? by mutableStateOf(null)
+    var zipCode: String? by mutableStateOf("")
     var isCountingDown: Boolean by mutableStateOf(false)
     var whenToRefresh: Date by mutableStateOf(currentTime)
      fun fetchWeatherData() {
@@ -57,7 +57,7 @@ class ViewModel{
                      Log.d("Unit ViewModel", currentUnit)
 
                  } catch (e: Exception) {
-                     // Handle the error if needed
+
                  }
              }
          }
@@ -76,7 +76,9 @@ class ViewModel{
                 lon = geoData.value?.lon
                 Log.d("geoData", geoData.value.toString())
                 SaveData.saveData(context,"zipcode",zipCode)
-                fetchWeatherData()
+                if (weatherData.value != null) {
+                    fetchWeatherData()
+                }
             }
         }
     }
@@ -110,9 +112,15 @@ class ViewModel{
     }
     fun init(context: Context) {
         WeatherAPI.clearCache()
-        zipCode = SaveData.getData(context,"zipCode")
-        unit = SaveData.getData(context,"unit").toString()
-        unitLetter = SaveData.getData(context,"unitLetter").toString()
+        if (SaveData.getData(context,"zipCode") == null){
+            zipCode = ""
+            unit = "imperial"
+            unitLetter = "F"
+        } else {
+            zipCode = SaveData.getData(context, "zipCode")
+            unit = SaveData.getData(context, "unit").toString()
+            unitLetter = SaveData.getData(context, "unitLetter").toString()
+        }
         refresh()
     }
     object SaveData {
