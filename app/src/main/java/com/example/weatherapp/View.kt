@@ -3,20 +3,27 @@ package com.example.weatherapp
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,8 +42,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,9 +57,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.weatherapp.ui.theme.WeatherAppTheme
+import com.google.android.gms.fitness.data.DataPoint
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToInt
 
 
 class View : ComponentActivity() {
@@ -84,46 +99,40 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(40.dp)
+            .padding(40.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            ZipCodeTextField(viewModel,context)
-                Row(
-                    Modifier.fillMaxWidth()
-                ) {
-                    TemperatureUI(viewModel, context)
-                    Spacer(modifier = Modifier.weight(1f))
-                    CurrentWeatherUI(viewModel)
-                }
-            // Make it Into a Row
-                Column(
-                ) {
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(0))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(1))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(2))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(3))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(4))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(5))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(6))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(7))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(9))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(10))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(11))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(12))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(13))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(14))
-                    ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(15))
-                    val currentTime = Calendar.getInstance().time
-                    val formattedTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
-                    Text(text = formattedTime.format(currentTime))
-                }
+            ZipCodeTextField(viewModel, context)
+            Row(
+                Modifier.fillMaxWidth()
+            ) {
+                TemperatureUI(viewModel, context)
+                Spacer(modifier = Modifier.weight(1f))
+                CurrentWeatherUI(viewModel)
             }
-        }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                Column {
+                    Row {
+                        if (viewModel.foreCastData.value != null) {
+                            for (i in 0 until 40) {
+                                ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(i))
+                            }
+                        }
+                    }
+
+                }
+
+            }
     }
+}
+
+
+
 
 @Composable
 fun TemperatureUI(viewModel: ViewModel, context: Context) {
@@ -200,7 +209,9 @@ fun changeUnitAndletter(viewModel: ViewModel, unit: String, unitLetter: String, 
     viewModel.unit = unit
     viewModel.unitLetter = unitLetter
     WeatherAPI.clearCache()
+    ForecastAPI.clearCache()
     viewModel.weatherData.value = null
+    viewModel.foreCastData.value = null
     viewModel.fetchWeatherData()
     ViewModel.SaveData.saveData(context,"unitLetter",unitLetter)
     ViewModel.SaveData.saveData(context,"unit",unit)
@@ -279,15 +290,69 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
 
 @Composable
 fun ForeCast(viewModel: ViewModel, list: ForecastItem?){
-    if (list == null){
-        CircularProgressIndicator()
-    } else {
-        val forecastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!)
-        Column {
-            Text(text = forecastTime)
+    val foreCastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!,"MM-dd hh:mm a")
+    val foreCastTimeStringToDate = viewModel.stringToDate(foreCastTime,"MM-dd hh:mm a")
+    val currentTime = viewModel.getCurrentTime("MM-dd hh:mm a")
+    val isPastTime = foreCastTimeStringToDate?.after(viewModel.stringToDate(currentTime,"MM-dd hh:mm a"))
+    if (list == null) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
+    }
+    Column(
+        modifier = Modifier
+            .padding(5.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
+        if (isPastTime!!) {
+            //Date
+            Text(
+                text = foreCastTime.substringBefore(" ").replace("-","/"),
+                textAlign = TextAlign.Center
+            )
+            //Time
+            Text(
+                text = foreCastTime.substringAfter(" "),
+                textAlign = TextAlign.Center
+            )
+            AsyncImage(
+                model = viewModel.getWeatherIcon(list.weather[0].icon),
+                contentDescription = "Weather Icon",
+                modifier = Modifier
+                    .size(100.dp)
+            )
+            Row {
+                Text(
+                    text = list.main.temp.roundToInt().toString(),
+                fontSize = 30.sp
+                )
+                Text(text = "o",
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Left,
+                    modifier = Modifier
+                        .offset(y = (-2).dp)
+                )
+                Text(
+                    text = viewModel.unitLetter,
+                fontSize = 30.sp
+                )
+            }
+            //Check for Value been Forgot after Recomposition
+            val rainTextColor: Color = if (isSystemInDarkTheme()){
+                Color(173, 216, 230)
+            }else{
+                Color.Blue
+            }
+            val percentageOfPrecipitation = list.pop * 100
+            if (list.weather[0].id in 200..622 ) {
+                Text(
+                    text = "$percentageOfPrecipitation%",
+                color = rainTextColor
+                )
+            }
         }
     }
 }
+
 
 
 

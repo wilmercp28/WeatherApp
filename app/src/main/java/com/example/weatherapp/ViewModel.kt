@@ -13,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -36,7 +38,6 @@ class ViewModel{
     var currentWeatherDescription: String? by mutableStateOf(null)
     var currentTemperatureFeelsLike: Int? by mutableStateOf(null)
     var cityName: String? by mutableStateOf(null)
-    var forecastTimeDaily: String? by mutableStateOf(null)
     var morningTemperature: Int? by mutableStateOf(null)
     var dayTemperature: Int? by mutableStateOf(null)
     var eveningTemperature: Int? by mutableStateOf(null)
@@ -103,17 +104,16 @@ class ViewModel{
             dailyWeatherIcon = "https://openweathermap.org/img/wn/$dailyWeatherIconCode@2x.png"
             currentWeatherDescription = weatherData.value?.current?.weather?.get(0)?.description
             currentTemperatureFeelsLike = weatherData.value?.current?.feels_like?.roundToInt()
-            forecastTimeDaily = convertUnixTimeToLocalTime(weatherData.value?.daily?.get(0)?.dt!!)
             dailySummary = weatherData.value?.daily?.get(0)?.summary
             cityName = geoData.value?.name
         }
     }
-    fun convertUnixTimeToLocalTime(unixTime: Long): String {
+    fun convertUnixTimeToLocalTime(unixTime: Long, dateFormat: String): String {
         val utcTimeInMillis = unixTime * 1000 // Convert to milliseconds
         val timeZone = TimeZone.getDefault() // Get the default time zone
         val localTimeInMillis = utcTimeInMillis + timeZone.rawOffset // Apply time zone offset
         val localDate = Date(localTimeInMillis)
-        val dateFormat = SimpleDateFormat("hh:mm a", Locale.getDefault()) // Adjust the format as needed
+        val dateFormat = SimpleDateFormat(dateFormat ,Locale.getDefault()) // Adjust the format as needed
         return dateFormat.format(localDate)
     }
     fun init(context: Context) {
@@ -167,7 +167,20 @@ class ViewModel{
             calendar.add(Calendar.MINUTE, minutesToAdd)
             return calendar.time
         }
+    fun stringToDate(dateString: String, format: String): Date? {
+        val formatter = SimpleDateFormat(format, locale)
+        return formatter.parse(dateString)
     }
+
+    fun getCurrentTime(format: String): String {
+        val currentTime  = Calendar.getInstance().time
+        val formatDate = SimpleDateFormat(format, locale)
+        return formatDate.format(currentTime)
+    }
+    fun getWeatherIcon(iconCode: String): String {
+        return "https://openweathermap.org/img/wn/$iconCode@2x.png"
+    }
+}
 
 
 

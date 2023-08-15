@@ -1,5 +1,7 @@
 package com.example.weatherapp
 
+import java.util.Date
+
 data class ForecastData(
     val cod: String,
     val message: Int,
@@ -7,7 +9,6 @@ data class ForecastData(
     val list: List<ForecastItem>,
     val city: City
 )
-
 data class ForecastItem(
     val dt: Long,
     val main: MainWeatherInfo,
@@ -20,7 +21,6 @@ data class ForecastItem(
     val sys: Sys,
     val dt_txt: String
 )
-
 data class MainWeatherInfo(
     val temp: Double,
     val feels_like: Double,
@@ -32,7 +32,6 @@ data class MainWeatherInfo(
     val humidity: Int,
     val temp_kf: Double
 )
-
 data class Weather(
     val id: Int,
     val main: String,
