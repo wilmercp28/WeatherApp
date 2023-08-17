@@ -48,13 +48,21 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.MultiParagraph
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -97,13 +105,12 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
     var forecastBoxWidth by remember {
         mutableStateOf(0f)
     }
-    var temperaturesList by remember { mutableStateOf(MutableList(40) { 0.0 }) }
     val context = LocalContext.current
     viewModel.init(context)
     DisposableEffect(Unit) {
         viewModel.fetchGeoData(context)
         onDispose { /* Clean up if needed */ }
-}
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -112,14 +119,14 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-            ZipCodeTextField(viewModel, context)
-            Row(
-                Modifier.fillMaxWidth()
-            ) {
-                TemperatureUI(viewModel, context)
-                Spacer(modifier = Modifier.weight(1f))
-                CurrentWeatherUI(viewModel)
-            }
+        ZipCodeTextField(viewModel, context)
+        Row(
+            Modifier.fillMaxWidth()
+        ) {
+            TemperatureUI(viewModel, context)
+            Spacer(modifier = Modifier.weight(1f))
+            CurrentWeatherUI(viewModel)
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -140,11 +147,11 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
                         ){
                             ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(i))
                         }
-                        temperaturesList[i] = viewModel.foreCastData.value?.list?.get(i)?.main?.temp ?: 0.0
+
                     }
                 }
             }
-            TemperatureGraph(temperaturesList,columnWidthFloat,forecastBoxWidth)
+            TemperatureGraph(viewModel.temperatureList,columnWidthFloat,forecastBoxWidth)
         }
     }
 }
@@ -227,6 +234,7 @@ fun changeUnitAndletter(viewModel: ViewModel, unit: String, unitLetter: String, 
     viewModel.weatherData.value = null
     viewModel.foreCastData.value = null
     viewModel.fetchWeatherData()
+    viewModel.temperatureList.clear()
     ViewModel.SaveData.saveData(context,"unitLetter",unitLetter)
     ViewModel.SaveData.saveData(context,"unit",unit)
 }
@@ -264,6 +272,7 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
 @Composable
 fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
     val keyboardController = LocalSoftwareKeyboardController.current
+
         TextField(
             value = viewModel.zipCode.toString(),
             onValueChange = { viewModel.zipCode = it },
@@ -299,14 +308,14 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
 }
 
 @Composable
-fun ForeCast(viewModel: ViewModel, list: ForecastItem?){
-    val foreCastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!,"MM-dd hh:mm a")
-    val foreCastTimeStringToDate = viewModel.stringToDate(foreCastTime,"MM-dd hh:mm a")
-    val currentTime = viewModel.getCurrentTime("MM-dd hh:mm a")
-    val isPastTime = foreCastTimeStringToDate?.after(viewModel.stringToDate(currentTime,"MM-dd hh:mm a"))
-    if (list == null) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-    }
+fun  ForeCast(viewModel: ViewModel, list: ForecastItem?){
+        val foreCastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!,"MM-dd hh:mm a")
+        val foreCastTimeStringToDate = viewModel.stringToDate(foreCastTime,"MM-dd hh:mm a")
+        val currentTime = viewModel.getCurrentTime("MM-dd hh:mm a")
+        val isPastTime = foreCastTimeStringToDate?.after(viewModel.stringToDate(currentTime,"MM-dd hh:mm a"))
+        if (list == null) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
+        }
     Column(
         modifier = Modifier
             .padding(5.dp)
@@ -315,6 +324,8 @@ fun ForeCast(viewModel: ViewModel, list: ForecastItem?){
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         if (isPastTime!!) {
+            Log.d("Temp",list.main.temp.toString())
+            viewModel.temperatureList += list.main.temp.roundToInt().toDouble()
             //Date
             Text(
                 text = foreCastTime.substringBefore(" ").replace("-","/"),
@@ -364,47 +375,61 @@ fun ForeCast(viewModel: ViewModel, list: ForecastItem?){
     }
 }
 
+
 @Composable
 fun TemperatureGraph(temperatures: List<Double>, columnWidthFloat: Float, forecastBoxWidth: Float){
+    val colorOnPrimary = MaterialTheme.colorScheme.onBackground
     val maxValue = temperatures.maxOrNull() ?: 0.0
-    val minValue = temperatures.minOrNull() ?: 0.0 // Added to get the minimum value
-    val valueRange = (maxValue + 30).roundToInt() - minValue
-    Log.d("ddddd",forecastBoxWidth.toString())
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-    ) {
-        val canvasHeight = size.height
-        val pointCount = temperatures.size
-
-        if (pointCount > 1) {
-            val xStep = columnWidthFloat / (pointCount - 1)
-            val path = androidx.compose.ui.graphics.Path()
-            path.moveTo(
-                forecastBoxWidth,
-                canvasHeight - ((temperatures[0] - minValue) / valueRange).toFloat() * canvasHeight
-            )
-            for ((index, temperature) in temperatures.withIndex()) {
-                val x = 200 + index * xStep
-                val y = canvasHeight - ((temperature - minValue) / valueRange).toFloat() * canvasHeight
-                path.lineTo(x, y)
-                drawLine(
-                    color = Color.Gray,
-                    start = Offset(x, canvasHeight),
-                    end = Offset(x, y),
-                    strokeWidth = 1.dp.toPx()
+    val minValue = temperatures.minOrNull() ?: 0.0
+    val valueRange = maxValue.roundToInt() - minValue.roundToInt()
+    Log.d("TempListInFuntion",temperatures.toString())
+    val paint = Paint().asFrameworkPaint().apply {
+        textSize = 30F
+    }
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+        ) {
+            val canvasHeight = size.height
+            val pointCount = temperatures.size
+            if (pointCount > 1) {
+                val xOffset = forecastBoxWidth / 1.5F
+                val path = androidx.compose.ui.graphics.Path()
+                path.moveTo(
+                    xOffset,
+                    canvasHeight - ( (temperatures[0] - minValue) / valueRange).toFloat() * canvasHeight
                 )
-            }
-            drawPath(
-                path = path,
-                color = Color.Blue,
-                style = Stroke(width = 2.dp.toPx())
-            )
-
+                for ((index, temperature) in temperatures.withIndex()) {
+                    val x = xOffset + index * forecastBoxWidth
+                    val y = canvasHeight - ((temperature - minValue) / valueRange).toFloat() * canvasHeight
+                    path.lineTo(x, y)
+                    drawLine(
+                        color = colorOnPrimary,
+                        start = Offset(x, canvasHeight),
+                        end = Offset(x, y),
+                        strokeWidth = 1.dp.toPx()
+                    )
+                    drawPath(
+                        path = path,
+                        color = colorOnPrimary,
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                    drawCircle(
+                        color = Color.Red,
+                        radius = 4.dp.toPx(),
+                        center = Offset(x, y)
+                    )
+                    drawIntoCanvas {
+                        it.nativeCanvas.drawText(
+                            "${temperature.roundToInt()}", x - 15F, y - 20f, paint
+                        )
+                    }
+                }
             }
         }
     }
+
 @Composable
 fun WeatherDetails(viewModel: ViewModel){
     Column(

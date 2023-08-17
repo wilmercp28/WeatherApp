@@ -47,6 +47,10 @@ class ViewModel{
     var isCountingDown: Boolean by mutableStateOf(false)
     var whenToRefresh: Date by mutableStateOf(currentTime)
     var isValidZipCode: Boolean by mutableStateOf(true)
+    var temperatureList: MutableList<Double> = mutableListOf()
+
+
+
     fun fetchWeatherData() {
         if (weatherData.value == null) {
             viewModelScope.launch {
