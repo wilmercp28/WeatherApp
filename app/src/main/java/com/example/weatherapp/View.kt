@@ -10,7 +10,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,10 +23,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -54,22 +52,17 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.ExperimentalTextApi
-import androidx.compose.ui.text.MultiParagraph
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
-import com.example.weatherapp.ui.theme.WeatherAppTheme
+import com.example.compose.WeatherAppTheme
 import kotlin.math.roundToInt
 
 
@@ -78,18 +71,12 @@ class View : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             WeatherAppTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
                     WeatherAppPreview()
-                }
             }
         }
     }
 }
-@Preview(showBackground = true)
+@Preview()
 @Composable
 fun WeatherAppPreview() {
     WeatherAppTheme {
@@ -98,13 +85,7 @@ fun WeatherAppPreview() {
 }
 @Composable
 fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
-    val localDensity = LocalDensity.current
-    var columnWidthFloat by remember {
-        mutableStateOf(0f)
-    }
-    var forecastBoxWidth by remember {
-        mutableStateOf(0f)
-    }
+    val temperatureList: MutableList<Double> = remember {mutableListOf() }
     val context = LocalContext.current
     viewModel.init(context)
     DisposableEffect(Unit) {
@@ -114,9 +95,8 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(40.dp)
-            .verticalScroll(rememberScrollState()),
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(40.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ZipCodeTextField(viewModel, context)
@@ -130,28 +110,25 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .onGloballyPositioned { coordinates ->
-                    columnWidthFloat = coordinates.size.width.toFloat()
-                }
                 .align(Alignment.CenterHorizontally)
         ) {
-            Row {
+            LazyRow(
+                modifier = Modifier
+            ){
                 if (viewModel.foreCastData.value != null) {
-                    for (i in 0 until 40) {
-                        Box(
-                            modifier = Modifier
-                                .onGloballyPositioned { coordinates ->
-                                    forecastBoxWidth = coordinates.size.width.toFloat()
-                                }
-                        ){
-                            ForeCast(viewModel, viewModel.foreCastData.value?.list?.get(i))
+                    item {
+                        for (i in 0 until 40) {
+                            ForeCast(
+                                viewModel,
+                                viewModel.foreCastData.value?.list?.get(i),
+                                temperatureList
+                            )
+
                         }
 
                     }
                 }
             }
-            TemperatureGraph(viewModel.temperatureList,columnWidthFloat,forecastBoxWidth)
         }
     }
 }
@@ -166,18 +143,21 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
                 Text(
                     text = viewModel.currentTemperature.toString(),
                     fontSize = 80.sp,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "o",
                     fontSize = 20.sp,
                     textAlign = TextAlign.Left,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .offset(y = 20.dp)
                 )
                 Box{
                     Text(
                         text = viewModel.unitLetter,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier
                             .offset(y = 20.dp)
                             .clickable { expanded = !expanded },
@@ -216,11 +196,13 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
             Row {
                 Text(
                     text = "Feels Like ${viewModel.currentTemperatureFeelsLike.toString()}",
-                    fontSize = 20.sp
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "o",
-                    fontSize = 10.sp
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -258,7 +240,8 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
                 Text(
                     text = viewModel.currentWeatherDescription.toString(),
                     fontSize = 25.sp,
-                    textAlign = TextAlign.Left
+                    textAlign = TextAlign.Left,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -271,6 +254,7 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
+
     val keyboardController = LocalSoftwareKeyboardController.current
 
         TextField(
@@ -303,12 +287,16 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
     if (viewModel.cityName == null){
         CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
     }else {
-        Text(text = viewModel.cityName.toString())
+        Text(text = viewModel.cityName.toString(),color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
 @Composable
-fun  ForeCast(viewModel: ViewModel, list: ForecastItem?){
+fun  ForeCast(
+    viewModel: ViewModel,
+    list: ForecastItem?,
+    temperatureList: MutableList<Double>
+){
         val foreCastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!,"MM-dd hh:mm a")
         val foreCastTimeStringToDate = viewModel.stringToDate(foreCastTime,"MM-dd hh:mm a")
         val currentTime = viewModel.getCurrentTime("MM-dd hh:mm a")
@@ -318,45 +306,57 @@ fun  ForeCast(viewModel: ViewModel, list: ForecastItem?){
         }
     Column(
         modifier = Modifier
-            .padding(5.dp)
-            .border(1.dp, MaterialTheme.colorScheme.onPrimary, RectangleShape),
+            .padding(5.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
         if (isPastTime!!) {
-            Log.d("Temp",list.main.temp.toString())
-            viewModel.temperatureList += list.main.temp.roundToInt().toDouble()
-            //Date
-            Text(
-                text = foreCastTime.substringBefore(" ").replace("-","/"),
-                textAlign = TextAlign.Center
-            )
-            //Time
-            Text(
-                text = foreCastTime.substringAfter(" "),
-                textAlign = TextAlign.Center
-            )
-            AsyncImage(
-                model = viewModel.getWeatherIcon(list.weather[0].icon),
-                contentDescription = "Weather Icon",
+           temperatureList.add(list.main.temp.roundToInt().toDouble() )
+            Column(
                 modifier = Modifier
-                    .size(100.dp)
+                    .border(1.dp,MaterialTheme.colorScheme.onPrimary, RectangleShape)
+                    .height(200.dp)
+                    .width(100.dp)
+                    .background(MaterialTheme.colorScheme.primary),
+                horizontalAlignment = Alignment.CenterHorizontally
             )
-            Row {
+            {
                 Text(
-                    text = list.main.temp.roundToInt().toString(),
-                fontSize = 30.sp
+                    text = foreCastTime.substringBefore(" ").replace("-", "/"),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
-                Text(text = "o",
-                    fontSize = 15.sp,
-                    textAlign = TextAlign.Left,
+                //Time
+                Text(
+                    text = foreCastTime.substringAfter(" "),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                AsyncImage(
+                    model = viewModel.getWeatherIcon(list.weather[0].icon),
+                    contentDescription = "Weather Icon",
                     modifier = Modifier
-                        .offset(y = (-2).dp)
+                        .size(100.dp)
                 )
-                Text(
-                    text = viewModel.unitLetter,
-                fontSize = 30.sp
-                )
+                Row {
+                    Text(
+                        text = list.main.temp.roundToInt().toString(),
+                        fontSize = 30.sp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Text(
+                        text = "o",
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Left,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier
+                            .offset(y = (-2).dp)
+                    )
+                    Text(
+                        text = viewModel.unitLetter,
+                        fontSize = 30.sp
+                    )
+                }
             }
             //Check for Value been Forgot after Recomposition
             val rainTextColor: Color = if (isSystemInDarkTheme()){
@@ -374,62 +374,6 @@ fun  ForeCast(viewModel: ViewModel, list: ForecastItem?){
         }
     }
 }
-
-
-@Composable
-fun TemperatureGraph(temperatures: List<Double>, columnWidthFloat: Float, forecastBoxWidth: Float){
-    val colorOnPrimary = MaterialTheme.colorScheme.onBackground
-    val maxValue = temperatures.maxOrNull() ?: 0.0
-    val minValue = temperatures.minOrNull() ?: 0.0
-    val valueRange = maxValue.roundToInt() - minValue.roundToInt()
-    Log.d("TempListInFuntion",temperatures.toString())
-    val paint = Paint().asFrameworkPaint().apply {
-        textSize = 30F
-    }
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-        ) {
-            val canvasHeight = size.height
-            val pointCount = temperatures.size
-            if (pointCount > 1) {
-                val xOffset = forecastBoxWidth / 1.5F
-                val path = androidx.compose.ui.graphics.Path()
-                path.moveTo(
-                    xOffset,
-                    canvasHeight - ( (temperatures[0] - minValue) / valueRange).toFloat() * canvasHeight
-                )
-                for ((index, temperature) in temperatures.withIndex()) {
-                    val x = xOffset + index * forecastBoxWidth
-                    val y = canvasHeight - ((temperature - minValue) / valueRange).toFloat() * canvasHeight
-                    path.lineTo(x, y)
-                    drawLine(
-                        color = colorOnPrimary,
-                        start = Offset(x, canvasHeight),
-                        end = Offset(x, y),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                    drawPath(
-                        path = path,
-                        color = colorOnPrimary,
-                        style = Stroke(width = 2.dp.toPx())
-                    )
-                    drawCircle(
-                        color = Color.Red,
-                        radius = 4.dp.toPx(),
-                        center = Offset(x, y)
-                    )
-                    drawIntoCanvas {
-                        it.nativeCanvas.drawText(
-                            "${temperature.roundToInt()}", x - 15F, y - 20f, paint
-                        )
-                    }
-                }
-            }
-        }
-    }
-
 @Composable
 fun WeatherDetails(viewModel: ViewModel){
     Column(
