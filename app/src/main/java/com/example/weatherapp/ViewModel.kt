@@ -113,12 +113,16 @@ class ViewModel{
         }
     }
     fun convertUnixTimeToLocalTime(unixTime: Long, dateFormat: String): String {
-        val utcTimeInMillis = unixTime * 1000 // Convert to milliseconds
-        val timeZone = TimeZone.getDefault() // Get the default time zone
-        val localTimeInMillis = utcTimeInMillis + timeZone.rawOffset // Apply time zone offset
-        val localDate = Date(localTimeInMillis)
-        val dateFormat = SimpleDateFormat(dateFormat ,Locale.getDefault()) // Adjust the format as needed
-        return dateFormat.format(localDate)
+        if (weatherData.value != null) {
+            val utcTimeInMillis = unixTime * 1000 // Convert to milliseconds
+            val timeZone = weatherData.value?.timezone_offset // Get the default time zone
+            val localTimeInMillis = utcTimeInMillis + timeZone!! // Apply time zone offset
+            val localDate = Date(localTimeInMillis)
+            val dateFormat =
+                SimpleDateFormat(dateFormat, Locale.getDefault()) // Adjust the format as needed
+            return dateFormat.format(localDate)
+        }
+        return "0-0 00:00 am"
     }
     fun init(context: Context) {
         Log.d("Init","Init Run")

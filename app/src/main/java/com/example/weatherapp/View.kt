@@ -6,10 +6,11 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +24,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
@@ -31,11 +34,11 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,15 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,10 +56,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import com.example.compose.WeatherAppTheme
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 
 class View : ComponentActivity() {
@@ -84,60 +80,68 @@ fun WeatherAppPreview() {
     }
 }
 @Composable
-fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}){
-    val temperatureList: MutableList<Double> = remember {mutableListOf() }
+fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}) {
     val context = LocalContext.current
     viewModel.init(context)
     DisposableEffect(Unit) {
         viewModel.fetchGeoData(context)
         onDispose { /* Clean up if needed */ }
     }
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface)
             .padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ZipCodeTextField(viewModel, context)
-        Row(
-            Modifier.fillMaxWidth()
-        ) {
-            TemperatureUI(viewModel, context)
-            Spacer(modifier = Modifier.weight(1f))
-            CurrentWeatherUI(viewModel)
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterHorizontally)
-        ) {
-            LazyRow(
-                modifier = Modifier
-            ){
-                if (viewModel.foreCastData.value != null) {
-                    item {
-                        for (i in 0 until 40) {
-                            ForeCast(
-                                viewModel,
-                                viewModel.foreCastData.value?.list?.get(i),
-                                temperatureList
-                            )
-
+        item {
+            ZipCodeTextField(viewModel, context)
+            if (viewModel.weatherData.value == null) {
+                CircularProgressIndicator(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            } else {
+            Row(
+                Modifier.fillMaxWidth()
+            ) {
+                    TemperatureUI(viewModel, context)
+                    Spacer(modifier = Modifier.weight(1f))
+                    CurrentWeatherUI(viewModel)
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    var selectedIndex = remember { mutableStateOf(0) }
+                    LazyRow(
+                        modifier = Modifier
+                    ) {
+                        if (viewModel.foreCastData.value != null) {
+                            item {
+                                for (i in 0 until 40) {
+                                    ForeCast(
+                                        viewModel,
+                                        viewModel.foreCastData.value?.list?.get(i),
+                                        selectedIndex,
+                                        i
+                                    )
+                                }
+                            }
                         }
-
                     }
+                    WeatherDetails(viewModel, selectedIndex)
                 }
             }
         }
     }
 }
+
+
 @Composable
 fun TemperatureUI(viewModel: ViewModel, context: Context) {
     var expanded by remember { mutableStateOf(false) }
-    if (viewModel.currentTemperature == null){
-        CircularProgressIndicator()
-    } else {
         Column {
             Row {
                 Text(
@@ -207,7 +211,6 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
             }
         }
     }
-}
 fun changeUnitAndletter(viewModel: ViewModel, unit: String, unitLetter: String, context: Context){
     viewModel.unit = unit
     viewModel.unitLetter = unitLetter
@@ -222,9 +225,6 @@ fun changeUnitAndletter(viewModel: ViewModel, unit: String, unitLetter: String, 
 }
 @Composable
 fun CurrentWeatherUI(viewModel: ViewModel) {
-    if(viewModel.currentWeatherIcon == null){
-        CircularProgressIndicator()
-    } else {
         Column {
             AsyncImage(
                 model = viewModel.currentWeatherIcon,
@@ -246,150 +246,166 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
             }
         }
     }
-}
-
-
-
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
-
     val keyboardController = LocalSoftwareKeyboardController.current
 
-        TextField(
-            value = viewModel.zipCode.toString(),
-            onValueChange = { viewModel.zipCode = it },
-            modifier = Modifier
-                .width(200.dp),
-            label = {
-                Text(text = "Zip Code",)
-                    },
-            placeholder = {
-                if (!viewModel.isValidZipCode) {
-                    Text(text = "  Invalid Zip Code",)
-                } else {
-                    Text(text = "  Enter Your Zip Code",)
-                }
-                          },
-            textStyle = androidx.compose.ui.text.TextStyle(
-            ),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    viewModel.fetchGeoData(context)
-                    keyboardController?.hide()
-                }
-            ),
-            )
+    TextField(
+        value = viewModel.zipCode.toString(),
+        onValueChange = { viewModel.zipCode = it },
+        modifier = Modifier
+            .width(200.dp),
+        label = {
+            Text(text = "Zip Code",)
+                },
+        placeholder = {
+            if (!viewModel.isValidZipCode) {
+                Text(text = "  Invalid Zip Code",)
+            } else {
+                Text(text = "  Enter Your Zip Code",)
+            }
+                      },
+        textStyle = androidx.compose.ui.text.TextStyle(
+        ),
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardActions = KeyboardActions(
+            onDone = {
+                viewModel.fetchGeoData(context)
+                keyboardController?.hide()
+            }
+        ),
+        )
     Spacer(modifier = Modifier.size(20.dp))
-    if (viewModel.cityName == null){
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-    }else {
-        Text(text = viewModel.cityName.toString(),color = MaterialTheme.colorScheme.onSurface)
-    }
+   if (viewModel.weatherData.value != null) {
+       Text(text = viewModel.cityName.toString(), color = MaterialTheme.colorScheme.onSurface)
+   }
 }
 
 @Composable
 fun  ForeCast(
     viewModel: ViewModel,
     list: ForecastItem?,
-    temperatureList: MutableList<Double>
-){
-        val foreCastTime = viewModel.convertUnixTimeToLocalTime(list?.dt!!,"MM-dd hh:mm a")
-        val foreCastTimeStringToDate = viewModel.stringToDate(foreCastTime,"MM-dd hh:mm a")
-        val currentTime = viewModel.getCurrentTime("MM-dd hh:mm a")
-        val isPastTime = foreCastTimeStringToDate?.after(viewModel.stringToDate(currentTime,"MM-dd hh:mm a"))
-        if (list == null) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
-        }
-    Column(
-        modifier = Modifier
-            .padding(5.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        if (isPastTime!!) {
-           temperatureList.add(list.main.temp.roundToInt().toDouble() )
-            Column(
-                modifier = Modifier
-                    .border(1.dp,MaterialTheme.colorScheme.onPrimary, RectangleShape)
-                    .height(200.dp)
-                    .width(100.dp)
-                    .background(MaterialTheme.colorScheme.primary),
-                horizontalAlignment = Alignment.CenterHorizontally
-            )
-            {
-                Text(
-                    text = foreCastTime.substringBefore(" ").replace("-", "/"),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                //Time
-                Text(
-                    text = foreCastTime.substringAfter(" "),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                AsyncImage(
-                    model = viewModel.getWeatherIcon(list.weather[0].icon),
-                    contentDescription = "Weather Icon",
+    selectedIndex: MutableState<Int>?,
+    index: Int,
+) {
+        val foreCastTime =  rememberSaveable{viewModel.convertUnixTimeToLocalTime(list?.dt!!, "MM-dd hh:mm a") }
+        val foreCastTimeStringToDate = rememberSaveable{ viewModel.stringToDate(foreCastTime, "MM-dd hh:mm a")!! }
+        val currentTime = rememberSaveable{viewModel.getCurrentTime("MM-dd hh:mm a")}
+        val isPastTime = foreCastTimeStringToDate?.after(viewModel.stringToDate(currentTime, "MM-dd hh:mm a"))
+        Column(
+            modifier = Modifier
+                .padding(5.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (isPastTime!!) {
+                Column(
                     modifier = Modifier
-                        .size(100.dp)
+                        .height(200.dp)
+                        .width(100.dp)
+                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
+                        .clickable {
+                            selectedIndex?.value = index
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally
                 )
-                Row {
+                {
                     Text(
-                        text = list.main.temp.roundToInt().toString(),
-                        fontSize = 30.sp,
+                        text = foreCastTime.substringBefore(" ").replace("-", "/"),
+                        textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onPrimary
                     )
+                    //Time
                     Text(
-                        text = "o",
-                        fontSize = 15.sp,
-                        textAlign = TextAlign.Left,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier
-                            .offset(y = (-2).dp)
+                        text = foreCastTime.substringAfter(" "),
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
+                    AsyncImage(
+                        model = viewModel.getWeatherIcon(list?.weather?.get(0)?.icon!!),
+                        contentDescription = "Weather Icon",
+                        modifier = Modifier
+                            .size(100.dp)
+                    )
+                    Row {
+                        Text(
+                            text = list.main.temp.roundToInt().toString(),
+                            fontSize = 30.sp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = "o",
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Left,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier
+                                .offset(y = (-2).dp)
+                        )
+                        Text(
+                            text = viewModel.unitLetter,
+                            fontSize = 30.sp
+                        )
+                    }
+                }
+                //Check for Value been Forgot after Recomposition
+                val rainTextColor: Color = if (isSystemInDarkTheme()) {
+                    Color(173, 216, 230)
+                } else {
+                    Color.Blue
+                }
+                val percentageOfPrecipitation = rememberSaveable { list!!.pop * 100 }
+                if (list!!.weather[0].id in 200..622) {
                     Text(
-                        text = viewModel.unitLetter,
-                        fontSize = 30.sp
+                        text = "$percentageOfPrecipitation%",
+                        color = rainTextColor
                     )
                 }
             }
-            //Check for Value been Forgot after Recomposition
-            val rainTextColor: Color = if (isSystemInDarkTheme()){
-                Color(173, 216, 230)
-            }else{
-                Color.Blue
-            }
-            val percentageOfPrecipitation = rememberSaveable{list.pop * 100}
-            if (list.weather[0].id in 200..622 ) {
-                Text(
-                    text = "$percentageOfPrecipitation%",
-                color = rainTextColor
-                )
-            }
         }
     }
-}
 @Composable
-fun WeatherDetails(viewModel: ViewModel){
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .padding(10.dp)
-    ) {
-        Text(text = "Details", fontSize = 30.sp)
-        Row {
-            //Right Side Colum
-            Column {
-                Text(text = "Humidity", fontSize = 20.sp)
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Column {
-                Text(text = viewModel.weatherData.value?.current?.humidity.toString()+"%", fontSize = 20.sp)
+fun WeatherDetails(viewModel: ViewModel, selectedIndex: MutableState<Int>?) {
+    if (viewModel.foreCastData.value == null) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurface)
+    } else {
+        if (selectedIndex?.value != null) {
+            val foreCastData = viewModel.foreCastData.value?.list?.get(selectedIndex.value)
+            val percentageOfPrecipitation = viewModel.foreCastData.value!!.list[selectedIndex.value].pop * 100
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .padding(10.dp)
+            ) {
+                Text(
+                    text = "Details", fontSize = 30.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row {
+                    //Right Side Colum
+                    Column {
+                        Text(
+                            text = "Max\n" +
+                                    "Min\n" +
+                                    "Humidity\n" +
+                                    "Precipitation",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Column {
+                        Text(
+                            text = "${foreCastData?.main?.temp_max?.roundToInt()}${viewModel.unitLetter}\n" +
+                                    "${foreCastData?.main?.temp_min?.roundToInt()}${viewModel.unitLetter}\n" +
+                                    "${foreCastData?.main?.humidity}%\n" +
+                                    "$percentageOfPrecipitation%",
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Log.d("Max", foreCastData?.main?.temp_max.toString())
+                        Log.d("min", foreCastData?.main?.temp_min.toString())
+                    }
+                }
             }
         }
     }
