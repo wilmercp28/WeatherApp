@@ -7,10 +7,8 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +30,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -59,7 +56,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.compose.WeatherAppTheme
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 
 
 class View : ComponentActivity() {
@@ -72,7 +68,7 @@ class View : ComponentActivity() {
         }
     }
 }
-@Preview()
+@Preview
 @Composable
 fun WeatherAppPreview() {
     WeatherAppTheme {
@@ -114,7 +110,8 @@ fun WeatherAppUI(viewModel: ViewModel = remember { ViewModel()}) {
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    var selectedIndex = remember { mutableStateOf(0) }
+                    Spacer(modifier = Modifier.size(50.dp))
+                    val selectedIndex = rememberSaveable { mutableStateOf(0) }
                     LazyRow(
                         modifier = Modifier
                     ) {
@@ -181,7 +178,7 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
                             }
                         )
                         DropdownMenuItem(
-                            text = {Text(text = "Celsius (C)",)},
+                            text = {Text(text = "Celsius (C)")},
                             onClick = {
                                 changeUnitAndletter(viewModel,"metric","C",context)
                                 expanded = false
@@ -190,7 +187,7 @@ fun TemperatureUI(viewModel: ViewModel, context: Context) {
                         DropdownMenuItem(
                             text = {Text(text = "Kelvin (K)")},
                             onClick = {
-                                changeUnitAndletter(viewModel,"standar", "K",context)
+                                changeUnitAndletter(viewModel,"standard", "K",context)
                                 expanded = false
                             }
                         )
@@ -238,7 +235,7 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
                 CircularProgressIndicator()
             } else {
                 Text(
-                    text = viewModel.currentWeatherDescription.toString(),
+                    text = viewModel.currentWeatherDescription.toString().replaceFirstChar { it.uppercase() },
                     fontSize = 25.sp,
                     textAlign = TextAlign.Left,
                     color = MaterialTheme.colorScheme.onSurface
@@ -246,7 +243,7 @@ fun CurrentWeatherUI(viewModel: ViewModel) {
             }
         }
     }
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -257,13 +254,13 @@ fun ZipCodeTextField(viewModel: ViewModel, context: Context) {
         modifier = Modifier
             .width(200.dp),
         label = {
-            Text(text = "Zip Code",)
+            Text(text = "Zip Code")
                 },
         placeholder = {
             if (!viewModel.isValidZipCode) {
-                Text(text = "  Invalid Zip Code",)
+                Text(text = "  Invalid Zip Code")
             } else {
-                Text(text = "  Enter Your Zip Code",)
+                Text(text = "  Enter Your Zip Code")
             }
                       },
         textStyle = androidx.compose.ui.text.TextStyle(
@@ -291,25 +288,27 @@ fun  ForeCast(
     index: Int,
 ) {
         val foreCastTime =  rememberSaveable{viewModel.convertUnixTimeToLocalTime(list?.dt!!, "MM-dd hh:mm a") }
-        val foreCastTimeStringToDate = rememberSaveable{ viewModel.stringToDate(foreCastTime, "MM-dd hh:mm a")!! }
-        val currentTime = rememberSaveable{viewModel.getCurrentTime("MM-dd hh:mm a")}
-        val isPastTime = foreCastTimeStringToDate?.after(viewModel.stringToDate(currentTime, "MM-dd hh:mm a"))
         Column(
             modifier = Modifier
                 .padding(5.dp),
             verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (isPastTime!!) {
+                val selectedColor: Color = if (selectedIndex?.value == index){
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                Color.Transparent
+            }
                 Column(
                     modifier = Modifier
+                        .border(5.dp, selectedColor, RoundedCornerShape(30.dp))
                         .height(200.dp)
                         .width(100.dp)
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(30.dp))
                         .clickable {
                             selectedIndex?.value = index
                         },
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 )
                 {
                     Text(
@@ -364,20 +363,25 @@ fun  ForeCast(
                 }
             }
         }
-    }
+
 @Composable
-fun WeatherDetails(viewModel: ViewModel, selectedIndex: MutableState<Int>?) {
+fun WeatherDetails(viewModel: ViewModel, selectedIndex: MutableState<Int>) {
     if (viewModel.foreCastData.value == null) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurface)
     } else {
-        if (selectedIndex?.value != null) {
             val foreCastData = viewModel.foreCastData.value?.list?.get(selectedIndex.value)
             val percentageOfPrecipitation = viewModel.foreCastData.value!!.list[selectedIndex.value].pop * 100
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .padding(10.dp)
             ) {
+                Text(
+                    text = viewModel.foreCastData.value!!.list[selectedIndex.value].weather[0].description.replaceFirstChar { it.uppercase() },
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 30.sp
+                    )
                 Text(
                     text = "Details", fontSize = 30.sp,
                     color = MaterialTheme.colorScheme.onSurface
@@ -388,9 +392,12 @@ fun WeatherDetails(viewModel: ViewModel, selectedIndex: MutableState<Int>?) {
                         Text(
                             text = "Max\n" +
                                     "Min\n" +
+                                    "Feels Like\n" +
                                     "Humidity\n" +
-                                    "Precipitation",
-                            color = MaterialTheme.colorScheme.onSurface
+                                    "Precipitation\n" +
+                                    "Pressure",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Start
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
@@ -398,9 +405,17 @@ fun WeatherDetails(viewModel: ViewModel, selectedIndex: MutableState<Int>?) {
                         Text(
                             text = "${foreCastData?.main?.temp_max?.roundToInt()}${viewModel.unitLetter}\n" +
                                     "${foreCastData?.main?.temp_min?.roundToInt()}${viewModel.unitLetter}\n" +
+                                    "${foreCastData?.main?.feels_like?.roundToInt()}\n" +
                                     "${foreCastData?.main?.humidity}%\n" +
-                                    "$percentageOfPrecipitation%",
-                            color = MaterialTheme.colorScheme.onSurface
+                                    if (percentageOfPrecipitation.roundToInt() == 0){
+                                        "No precipitation expected\n"
+                                    } else {
+                                        "${percentageOfPrecipitation.roundToInt()}%\n"
+                                    } + "${foreCastData?.main?.pressure} hPa\n"
+
+                            ,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.End
                         )
                         Log.d("Max", foreCastData?.main?.temp_max.toString())
                         Log.d("min", foreCastData?.main?.temp_min.toString())
@@ -409,18 +424,3 @@ fun WeatherDetails(viewModel: ViewModel, selectedIndex: MutableState<Int>?) {
             }
         }
     }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
